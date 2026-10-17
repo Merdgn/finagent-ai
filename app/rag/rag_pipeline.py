@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 
 from app.rag.document_loader import load_documents
-from app.rag.chunker import chunk_documents
+from app.rag.semantic_chunker import chunk_markdown_by_heading
 from app.rag.embedding_service import EmbeddingService
 from app.rag.vector_store import VectorStore
 from app.llm.ollama_client import OllamaClient
@@ -49,11 +49,7 @@ class RAGPipeline:
 
         documents = load_documents(documents_dir)
 
-        chunks = chunk_documents(
-            documents,
-            chunk_size=500,
-            overlap=100,
-        )
+        chunks = chunk_markdown_by_heading(documents)
 
         if not chunks:
             raise ValueError("No document chunks available")
@@ -74,10 +70,12 @@ class RAGPipeline:
             [question]
         )
 
+        
         results = self.vector_store.search(
-            query_embedding,
-            top_k=3,
-        )
+    query_embedding,
+    top_k=3,
+    min_score=0.30,
+)
 
         if not results:
             return RAGResponse(

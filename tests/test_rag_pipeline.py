@@ -17,7 +17,7 @@ class FakeVectorStore:
     def build(self, chunks, embeddings):
         self.chunks = chunks
 
-    def search(self, query_embedding, top_k=3):
+    def search(self, query_embedding, top_k=3, min_score=None):
         return [
             SearchResult(
                 content=(

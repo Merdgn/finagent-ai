@@ -52,19 +52,29 @@ class VectorStore:
         self.index = index
         self.chunks = list(chunks)
 
+    
     def search(
         self,
         query_embedding: np.ndarray,
-        top_k: int = 3
+        top_k: int = 3,
+        min_score: float | None = None,
     ) -> list[SearchResult]:
+
         if self.index is None:
             raise RuntimeError("Index has not been built")
 
         if top_k <= 0:
             raise ValueError("top_k must be positive")
 
+        if min_score is not None:
+            if not -1.0 <= min_score <= 1.0:
+                raise ValueError(
+                    "min_score must be between -1 and 1"
+                )
+
         query = np.asarray(
-            query_embedding, dtype=np.float32
+            query_embedding,
+            dtype=np.float32,
         )
 
         if query.ndim == 1:
@@ -82,12 +92,17 @@ class VectorStore:
         query = np.ascontiguousarray(query)
 
         k = min(top_k, len(self.chunks))
+
         scores, indices = self.index.search(query, k)
 
         results = []
 
         for score, index in zip(scores[0], indices[0]):
+
             if index < 0:
+                continue
+
+            if min_score is not None and score < min_score:
                 continue
 
             chunk = self.chunks[int(index)]
@@ -97,7 +112,7 @@ class VectorStore:
                     content=chunk.content,
                     source=chunk.source,
                     chunk_id=chunk.chunk_id,
-                    score=float(score)
+                    score=float(score),
                 )
             )
 
