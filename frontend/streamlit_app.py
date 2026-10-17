@@ -3,8 +3,28 @@ import os
 import time
 from uuid import uuid4
 
-import requests
 import streamlit as st
+from dotenv import load_dotenv
+
+from frontend.cloud_service import get_cloud_service
+
+
+load_dotenv()
+
+# Use Groq for the public cloud demo.
+os.environ["LLM_PROVIDER"] = "groq"
+
+# Streamlit Cloud secrets are configured in
+# the application's deployment settings.
+try:
+    if "GROQ_API_KEY" in st.secrets:
+        os.environ["GROQ_API_KEY"] = st.secrets[
+            "GROQ_API_KEY"
+        ]
+except FileNotFoundError:
+    pass
+
+os.environ["GROQ_MODEL"] = "openai/gpt-oss-20b"
 
 
 API_URL = os.getenv(
@@ -46,29 +66,26 @@ if "session_id" not in st.session_state:
     start_new_chat()
 
 
+
+@st.cache_resource(show_spinner=False)
+def load_ai_service():
+    return get_cloud_service()
+
+
 def request_answer(question: str) -> dict:
-    response = requests.post(
-        f"{API_URL}/agent/conversation",
-        json={
-            "session_id": st.session_state.session_id,
-            "question": question,
-        },
-        timeout=180,
+    service = load_ai_service()
+
+    result = service.ask(
+        session_id=st.session_state.session_id,
+        question=question,
     )
 
-    response.raise_for_status()
-    return response.json()
-
-
-def check_backend() -> bool:
-    try:
-        response = requests.get(
-            f"{API_URL}/health",
-            timeout=3,
-        )
-        return response.status_code == 200
-    except requests.RequestException:
-        return False
+    return {
+        "answer": result.answer,
+        "route": result.route,
+        "sources": result.sources,
+        "standalone_question": result.standalone_question,
+    }
 
 
 # ----------------------------
@@ -88,10 +105,8 @@ with st.sidebar:
         start_new_chat()
         st.rerun()
 
-    if check_backend():
-        st.success("Backend Connected")
-    else:
-        st.error("Backend Offline")
+    st.caption("Cloud AI Demo")
+    st.success("Groq-powered AI")
 
     st.divider()
 
@@ -222,16 +237,10 @@ if question:
                     "latency": latency,
                 })
 
-            except requests.Timeout:
+            except Exception:
                 st.error(
-                    "The AI service timed out. "
-                    "Please try again."
-                )
-
-            except requests.RequestException:
-                st.error(
-                    "Cannot reach the AI service. "
-                    "Check that FastAPI is running."
+                    "The AI service is temporarily unavailable. "
+                    "Please try again later."
                 )
 
             except (KeyError, ValueError):

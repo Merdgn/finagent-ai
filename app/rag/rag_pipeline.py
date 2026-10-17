@@ -5,7 +5,7 @@ from app.rag.document_loader import load_documents
 from app.rag.semantic_chunker import chunk_markdown_by_heading
 from app.rag.embedding_service import EmbeddingService
 from app.rag.vector_store import VectorStore
-from app.llm.ollama_client import OllamaClient
+from app.llm.provider import get_llm_client
 
 
 SYSTEM_PROMPT = """
@@ -45,7 +45,10 @@ class RAGPipeline:
             embedding_service or EmbeddingService()
         )
         self.vector_store = vector_store or VectorStore()
-        self.llm_client = llm_client or OllamaClient()
+        self.llm_client = (
+    llm_client if llm_client is not None
+    else get_llm_client()
+)
 
         documents = load_documents(documents_dir)
 
