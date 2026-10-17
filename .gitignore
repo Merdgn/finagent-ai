@@ -1,0 +1,13 @@
+
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.vscode/
+data/private/
+data/uploads/
+*.db
+*.sqlite3
