@@ -20,18 +20,89 @@ BANKING_TERMS = (
 )
 
 
-def create_agent_workflow(rag_pipeline):
+CONVERSATION_TERMS = {
+    "hello",
+    "hi",
+    "hey",
+    "thanks",
+    "thank you",
+    "how are you",
+    "merhaba",
+    "selam",
+    "nasılsın",
+    "nasılsın?",
+    "teşekkürler",
+    "teşekkür ederim",
+    "günaydın",
+    "iyi akşamlar",
+}
+
+CHAT_SYSTEM_PROMPT = """
+You are FinAgent AI, a friendly and professional
+banking information assistant.
+
+Respond naturally in the user's language.
+
+Rules:
+- Be conversational, concise and helpful.
+- Do not invent banking rates, fees or policies.
+- Never request passwords, PINs or verification codes.
+- Do not provide personalized financial advice.
+- Direct product-specific banking questions to
+  official documents instead of guessing.
+- Do not claim affiliation with a real bank.
+"""
+
+
+def create_agent_workflow(rag_pipeline, llm_client=None):
+    
+    
     def router_node(state: AgentState) -> dict:
         question = state["question"].strip().lower()
 
+        # Preserve explicit calculator commands.
         if question.startswith("calculate:"):
-            route = "calculator"
-        elif any(term in question for term in BANKING_TERMS):
-            route = "rag"
-        else:
-            route = "safety"
+            return {"route": "calculator"}
 
-        return {"route": route}
+        # Banking questions take priority.
+        if any(
+            re.search(rf"\b{re.escape(term)}\b", question)
+            for term in BANKING_TERMS
+        ):
+            return {"route": "rag"}
+
+        # Recognize common conversational expressions.
+        normalized = re.sub(
+            r"[!?.,;:]+", " ", question
+        )
+        normalized = " ".join(normalized.split())
+
+        greetings = (
+            "merhaba",
+            "selam",
+            "nasılsın",
+            "günaydın",
+            "iyi akşamlar",
+            "hello",
+            "hi",
+            "hey",
+            "how are you",
+            "teşekkür",
+            "thanks",
+            "thank you",
+        )
+
+        if llm_client is not None and any(
+            normalized == phrase
+            or normalized.startswith(phrase + " ")
+            or normalized.endswith(" " + phrase)
+            for phrase in greetings
+        ):
+            return {"route": "conversation"}
+
+        return {"route": "safety"}
+
+
 
     def select_route(state: AgentState) -> str:
         return state["route"]
@@ -87,6 +158,25 @@ def create_agent_workflow(rag_pipeline):
 
         return {"answer": answer, "sources": []}
 
+
+    def conversation_node(state: AgentState) -> dict:
+        if llm_client is None:
+            return {
+                "answer": "Conversation model unavailable.",
+                "sources": [],
+            }
+
+        answer = llm_client.generate(
+            prompt=state["question"],
+            system_prompt=CHAT_SYSTEM_PROMPT,
+        )
+
+        return {
+            "answer": answer,
+            "sources": [],
+        }
+
+
     def safety_node(state: AgentState) -> dict:
         return {
             "answer": (
@@ -103,6 +193,7 @@ def create_agent_workflow(rag_pipeline):
     graph.add_node("rag", rag_node)
     graph.add_node("calculator", calculator_node)
     graph.add_node("safety", safety_node)
+    graph.add_node("conversation", conversation_node)
 
     graph.add_edge(START, "router")
 
@@ -113,11 +204,13 @@ def create_agent_workflow(rag_pipeline):
             "rag": "rag",
             "calculator": "calculator",
             "safety": "safety",
+            "conversation": "conversation",
         },
     )
 
     graph.add_edge("rag", END)
     graph.add_edge("calculator", END)
     graph.add_edge("safety", END)
+    graph.add_edge("conversation", END)
 
     return graph.compile()

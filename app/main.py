@@ -61,9 +61,15 @@ def get_rag_pipeline() -> RAGPipeline:
     return RAGPipeline()
 
 
+
 @lru_cache(maxsize=1)
 def get_agent_workflow():
-    return create_agent_workflow(get_rag_pipeline())
+    pipeline = get_rag_pipeline()
+
+    return create_agent_workflow(
+        rag_pipeline=pipeline,
+        llm_client=pipeline.llm_client,
+    )
 
 
 @lru_cache(maxsize=1)

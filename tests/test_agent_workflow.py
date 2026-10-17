@@ -54,3 +54,66 @@ def test_agent_invalid_calculation():
 
     assert result["route"] == "calculator"
     assert result["answer"] == "Invalid arithmetic operation."
+
+
+class FakeChatLLM:
+    def generate(self, prompt, system_prompt=None):
+        return "İyiyim, teşekkür ederim!"
+
+
+def test_agent_general_conversation():
+    agent = create_agent_workflow(
+        rag_pipeline=FakeRAGPipeline(),
+        llm_client=FakeChatLLM(),
+    )
+
+    result = agent.invoke({
+        "question": "Nasılsın?"
+    })
+
+    assert result["route"] == "conversation"
+    assert result["answer"] == "İyiyim, teşekkür ederim!"
+    assert result["sources"] == []
+
+
+
+import pytest
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "merhaba",
+        "nasılsın",
+        "merhaba nasılsın?",
+        "Merhaba, nasılsın?",
+        "Hello",
+        "Hi",
+    ],
+)
+def test_natural_greetings(question):
+    agent = create_agent_workflow(
+        rag_pipeline=FakeRAGPipeline(),
+        llm_client=FakeChatLLM(),
+    )
+
+    result = agent.invoke({
+        "question": question
+    })
+
+    assert result["route"] == "conversation"
+    assert result["sources"] == []
+
+
+def test_bank_question_still_uses_rag():
+    agent = create_agent_workflow(
+        rag_pipeline=FakeRAGPipeline(),
+        llm_client=FakeChatLLM(),
+    )
+
+    result = agent.invoke({
+        "question": "Hello, my credit card is lost."
+    })
+
+    assert result["route"] == "rag"
+    assert result["sources"] == ["credit_card.md"]

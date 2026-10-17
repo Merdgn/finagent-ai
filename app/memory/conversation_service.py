@@ -55,7 +55,30 @@ class ConversationService:
 
         standalone_question = question
 
-        if history:
+        
+        normalized_question = question.lower().strip()
+
+        greetings = {
+            "merhaba",
+            "selam",
+            "nasılsın",
+            "nasılsın?",
+            "merhaba nasılsın?",
+            "teşekkür ederim",
+            "teşekkürler",
+            "hello",
+            "hi",
+            "how are you?",
+        }
+
+        should_rewrite = (
+            bool(history)
+            and not normalized_question.startswith("calculate:")
+            and normalized_question not in greetings
+        )
+
+        if should_rewrite:
+
             recent = history[-6:]
 
             history_text = "\n".join(
