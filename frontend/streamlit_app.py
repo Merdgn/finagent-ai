@@ -1,15 +1,23 @@
 
 import os
+import sys
 import time
+from pathlib import Path
 from uuid import uuid4
+
+# Add the project root to Python's import path.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 from dotenv import load_dotenv
 
 from frontend.cloud_service import get_cloud_service
 
+load_dotenv(PROJECT_ROOT / ".env")
 
-load_dotenv()
 
 # Use Groq for the public cloud demo.
 os.environ["LLM_PROVIDER"] = "groq"
