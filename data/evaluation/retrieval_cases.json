@@ -1,0 +1,39 @@
+
+[
+  {
+    "id": "Q01",
+    "question": "What should I do if my credit card is lost?",
+    "expected_source": "credit_card.md",
+    "expected_section": "Lost Card"
+  },
+  {
+    "id": "Q02",
+    "question": "How can I open a savings account?",
+    "expected_source": "savings_account.md",
+    "expected_section": "Account Opening"
+  },
+  {
+    "id": "Q03",
+    "question": "What is the exact interest rate?",
+    "expected_source": "savings_account.md",
+    "expected_section": "Interest Rates"
+  },
+  {
+    "id": "Q04",
+    "question": "Should I share my credit card PIN?",
+    "expected_source": "credit_card.md",
+    "expected_section": "Security"
+  },
+  {
+    "id": "Q05",
+    "question": "How are credit card limits determined?",
+    "expected_source": "credit_card.md",
+    "expected_section": "Credit Limit"
+  },
+  {
+    "id": "Q06",
+    "question": "What is the weather in Tokyo?",
+    "expected_source": null,
+    "expected_section": null
+  }
+]
